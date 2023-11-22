@@ -22,8 +22,11 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary, 
     //@ts-ignore
-    folder: 'SintoCheck',
-    allowedFormats: ['jpeg', 'png', 'jpg']
+    padams : {
+      folder: 'SintoCheck',
+      allowedFormats: ['jpeg', 'png', 'jpg']
+    }
+    
 })
 const upload = multer({storage});
 
@@ -66,25 +69,99 @@ function verifyToken(req: any, res: any, next: any) {
 }
 
 
-//images prueba
-app.use(express.json());
 
-app.use((req, res, next) => {
-  // console.log(req.body);
-  next();
-});
+app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
 
-app.post("/image", upload.single('image'), async (req, res) => {
-  // console.log(req.body, req.file);
-  console.log( JSON.stringify(req.file) );
+  const {patientId} = req.body;
+  //me sale un error que no existe path o filename, ver como agregar esos con ts si hay tiempo.
+  //@ts-ignore
+  const {path, filename} = req.file;
+  //primero checar que exista el paciente antes de hacer lo siguiente
+
+  //crear nueva imagen con path y filename en url y filename luego agregarlo al paciente
+  console.log("pacienteId")
+  console.log(patientId)
+  //antes de hacer esto checar si ya existe una imagen para ese paciente
+  //si existe borrarla y poner esta
+  //codigo muy tonto, arreglar despues pero funciona
+  const patientImage = await prisma.image.findFirst({
+    where: {
+      patientId: patientId,
+    },
+  });
+  await prisma.image.deleteMany({});
+
+  console.log("patientid de patientImage: ")
+  console.log(patientImage?.patientId)
+  if (patientImage === null) {
+    const resultImage = await prisma.image.create({
+      data: {
+        filename,
+        url: path,
+        patient: {
+          connect: { id: patientId }, 
+        },
+      },
+    });
+  } else {
+    console.log("entro al else")
+    console.log(patientImage.filename)
+    const deleted = await cloudinary.uploader.destroy(patientImage.filename);
+    console.log(deleted);
+    const deleteImages = await prisma.image.deleteMany({
+      where: {
+        patientId: patientId,
+      },
+     });
+     
+    const resultImage = await prisma.image.create({
+      data: {
+        filename,
+        url: path,
+        patient: {
+          connect: { id: patientId }, 
+        },
+      },
+    });
+  }
+  console.log(path, filename)
+  if (patientImage !== null) {
+    // console.log(patientImage.url)
+  }
+
   const responseData = {
     message: "ok"
   }
   res.json(responseData)
 })
 
-// --- Account Management ---
+app.get('/image', verifyToken, async (req, res) => {
+  //obtener la imagen que tiene ese patientId
+  //regresar el link a la imagen con ese patientId
+  const {patientId} = req.body
+  //obtener el patient de prisma
+  const patientImage = await prisma.image.findFirst({
+    where: {
+      patientId: patientId,
+    },
+  });
+  if (patientImage !== null) {
+    const data = {
+      url: patientImage.url
+    }
+    res.json(data)
+    console.log("if")
+  } else {
+    res.json()
+    console.log("else")
+  }
+  
 
+})
+
+
+
+// --- Account Management ---
 app.post(`/signup/patient`, async (req, res) => {
   const {
     name,
@@ -227,6 +304,7 @@ app.delete(`/patient/:id`, async (req, res) => {
       id: id,
     },
   });
+  
 
   res.json(result);
 });
@@ -311,7 +389,6 @@ app.put(`/doctor/:id`, verifyToken, async (req, res) => {
 });
 
 // --- Health Data Lists ---
-
 app.get(`/healthData`, verifyToken, async (req, res) => {
   const result = await prisma.healthData.findMany({
     where: {
