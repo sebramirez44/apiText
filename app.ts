@@ -70,7 +70,7 @@ function verifyToken(req: any, res: any, next: any) {
 
 
 
-app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
+app.post("/image", upload.single('image'), async (req, res) => {
 
   const {patientId} = req.body;
   //me sale un error que no existe path o filename, ver como agregar esos con ts si hay tiempo.
@@ -135,7 +135,7 @@ app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
   res.json(responseData)
 })
 
-app.get('/image', verifyToken, async (req, res) => {
+app.get('/image', async (req, res) => {
   //obtener la imagen que tiene ese patientId
   //regresar el link a la imagen con ese patientId
   const {patientId} = req.body
