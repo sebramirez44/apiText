@@ -82,7 +82,7 @@ app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
   })
   if (patient !== null) {
     if (patient.imageFilename !== null) {
-      //eliminar imagen de multer
+      //eliminar imagen de cloudinary
       cloudinary.uploader.destroy(patient.imageFilename)
     }
     const patientImage = await prisma.patient.update({
@@ -102,8 +102,6 @@ app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
 
 // necesito este endpoint por la cantidad de veces que pido la imagen del API, despues de cambiarla por ejemplo
 app.get('/image/:id', verifyToken, async (req, res) => {
-  //obtener la imagen que tiene ese patientId
-  //regresar el link a la imagen con ese patientId
   const {id} = req.params
   //obtener el patient de prisma
   const patientImage = await prisma.patient.findFirst({
@@ -111,19 +109,17 @@ app.get('/image/:id', verifyToken, async (req, res) => {
       id: id,
     },
   });
-  if (patientImage !== null) {
+  if (patientImage !== null && patientImage.imageurl !== null) {
     const data = {
       url: patientImage.imageurl
     }
     res.json(data)
+    
   } else {
     res.json()
   }
-  
 
 })
-
-
 
 // --- Account Management ---
 app.post(`/signup/patient`, async (req, res) => {
