@@ -69,91 +69,55 @@ function verifyToken(req: any, res: any, next: any) {
 }
 
 
-
 app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
-
   const {patientId} = req.body;
   //me sale un error que no existe path o filename, ver como agregar esos con ts si hay tiempo.
   //@ts-ignore
   const {path, filename} = req.file;
-  //primero checar que exista el paciente antes de hacer lo siguiente
 
-  //crear nueva imagen con path y filename en url y filename luego agregarlo al paciente
-  console.log("pacienteId")
-  console.log(patientId)
-  //antes de hacer esto checar si ya existe una imagen para ese paciente
-  //si existe borrarla y poner esta
-  //codigo muy tonto, arreglar despues pero funciona
-  const patientImage = await prisma.image.findFirst({
+  const patient = await prisma.patient.findFirst({
     where: {
-      patientId: patientId,
-    },
-  });
-  await prisma.image.deleteMany({});
-
-  console.log("patientid de patientImage: ")
-  console.log(patientImage?.patientId)
-  if (patientImage === null) {
-    const resultImage = await prisma.image.create({
-      data: {
-        filename,
-        url: path,
-        patient: {
-          connect: { id: patientId }, 
-        },
-      },
-    });
-  } else {
-    console.log("entro al else")
-    console.log(patientImage.filename)
-    const deleted = await cloudinary.uploader.destroy(patientImage.filename);
-    console.log(deleted);
-    const deleteImages = await prisma.image.deleteMany({
+      id: patientId
+    }
+  })
+  if (patient !== null) {
+    if (patient.imageFilename !== null) {
+      //eliminar imagen de multer
+      cloudinary.uploader.destroy(patient.imageFilename)
+    }
+    const patientImage = await prisma.patient.update({
       where: {
-        patientId: patientId,
+        id: patientId
       },
-     });
-     
-    const resultImage = await prisma.image.create({
-      data: {
-        filename,
-        url: path,
-        patient: {
-          connect: { id: patientId }, 
-        },
-      },
+      data : {
+        imageurl: path,
+        imageFilename: filename
+      }
     });
-  }
-  console.log(path, filename)
-  if (patientImage !== null) {
-    // console.log(patientImage.url)
-  }
 
-  const responseData = {
-    message: "ok"
+    res.json(patientImage)
   }
-  res.json(responseData)
+  
 })
 
+// necesito este endpoint por la cantidad de veces que pido la imagen del API, despues de cambiarla por ejemplo
 app.get('/image/:id', verifyToken, async (req, res) => {
   //obtener la imagen que tiene ese patientId
   //regresar el link a la imagen con ese patientId
   const {id} = req.params
   //obtener el patient de prisma
-  const patientImage = await prisma.image.findFirst({
+  const patientImage = await prisma.patient.findFirst({
     where: {
-      patientId: id,
+      id: id,
     },
   });
   if (patientImage !== null) {
     const data = {
-      url: patientImage.url
+      url: patientImage.imageurl
     }
     res.json(data)
-    console.log("if")
   } else {
     res.json()
-    console.log("else")
   }
   
 

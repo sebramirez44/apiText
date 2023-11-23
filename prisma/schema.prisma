@@ -7,17 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Image {
-  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
-  url                 String
-  filename            String
-
-  // patient             Patient?  @relation(fields: [patientId], references: [id])
-  // patientId           String?   @db.ObjectId
-  patient             Patient?   @relation(fields: [patientId], references: [id])
-  patientId           String?    @db.ObjectId @unique// relation scalar field  (used in the `@relation` attribute above)
-
-}
 
 model Patient {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
@@ -29,13 +18,11 @@ model Patient {
   weight            Float?
   medicine          String?
   medicalBackground String?
-
+  imageurl          String?            
+  imageFilename      String?
 
   doctors           Doctor[]           @relation(fields: [doctorIds], references: [id])
   doctorIds         String[]           @db.ObjectId
-
-  image             Image?             @relation()
-  imageId           String?            @db.ObjectId
   
   healthData        HealthData[] 
   healthDataRecords HealthDataRecord[]
@@ -52,6 +39,8 @@ model Doctor {
   code       String?
   speciality String?
   address    String?
+  imageurl          String?            
+  imageFilenme      String?
 
   patients   Patient[] @relation(fields: [patientIds], references: [id])
   patientIds String[]  @db.ObjectId
