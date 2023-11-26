@@ -69,9 +69,8 @@ function verifyToken(req: any, res: any, next: any) {
 }
 
 
-app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
+app.post("/image/patient", verifyToken, upload.single('image'), async (req, res) => {
   const {patientId} = req.body;
-  //me sale un error que no existe path o filename, ver como agregar esos con ts si hay tiempo.
   //@ts-ignore
   const {path, filename} = req.file;
 
@@ -100,8 +99,7 @@ app.post("/image", verifyToken, upload.single('image'), async (req, res) => {
   
 })
 
-// necesito este endpoint por la cantidad de veces que pido la imagen del API, despues de cambiarla por ejemplo
-app.get('/image/:id', verifyToken, async (req, res) => {
+app.get('/image/patient/:id', verifyToken, async (req, res) => {
   const {id} = req.params
   //obtener el patient de prisma
   const patientImage = await prisma.patient.findFirst({
@@ -600,20 +598,51 @@ app.post(`/doctorPatientRelationship`, verifyToken, async (req, res) => {
   if (doctor !== null) {
     doctorId = doctor.id
   }
-  const result = await prisma.doctor.update({
+
+  //checar que ese doctor no este relacionado con el paciente
+  const patient = await prisma.patient.findUnique({
     where: {
-      id: doctorId,
+      id: patientId,
     },
-    data: {
-      patients: {
-        connect: {
-          id: patientId,
+    select: {
+      doctors: {
+        where: {
+          id: doctorId,
         },
       },
     },
   });
+  if (patient !== null) {
+    const result = await prisma.doctor.update({
+      where: {
+        id: doctorId,
+      },
+      data: {
+        patients: {
+          connect: {
+            id: patientId,
+          },
+        },
+      },
+    });
+    res.json(result);
+  }
 
-  res.json(result);
+
+  // const result = await prisma.doctor.update({
+  //   where: {
+  //     id: doctorId,
+  //   },
+  //   data: {
+  //     patients: {
+  //       connect: {
+  //         id: patientId,
+  //       },
+  //     },
+  //   },
+  // });
+
+  // res.json(result);
 });
 
 app.delete(`/doctorPatientRelationship`, verifyToken, async (req, res) => {
@@ -636,7 +665,3 @@ app.delete(`/doctorPatientRelationship`, verifyToken, async (req, res) => {
 });
 
 export default app;
-
-app.listen(3000, () => {
-  console.log(`Server is running on port ${3000}`);
-});
