@@ -612,7 +612,7 @@ app.post(`/doctorPatientRelationship`, verifyToken, async (req, res) => {
       },
     },
   });
-  if (patient !== null) {
+  if (patient === null) {
     const result = await prisma.doctor.update({
       where: {
         id: doctorId,
